@@ -93,21 +93,7 @@ impl Board {
             _ => return Err(FenError),
         };
         // 3. Castling rights
-        board.castle_rights = {
-            let (mut wk, mut wq, mut bk, mut bq) = (false, false, false, false);
-            if fen_vec[2] != "-" {
-                for letter in fen_vec[2].chars() {
-                    match letter {
-                        'K' => wk = true,
-                        'Q' => wq = true,
-                        'k' => bk = true,
-                        'q' => bq = true,
-                        _ => return Err(FenError),
-                    }
-                }
-            }
-            CastlingRights::new(wk, wq, bk, bq)
-        };
+        board.castle_rights = fen_vec[2].parse()?;
         // 4. En passant
         board.ep_file = {
             if fen_vec[3] == "-" {
