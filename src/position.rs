@@ -2,6 +2,8 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::str::FromStr;
 
+use crate::Color;
+
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -56,6 +58,35 @@ impl Square {
             F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 => File::F,
             G1 | G2 | G3 | G4 | G5 | G6 | G7 | G8 => File::G,
             H1 | H2 | H3 | H4 | H5 | H6 | H7 | H8 => File::H,
+        }
+    }
+
+    pub fn up(self, color: Color) -> Option<Self> {
+        let jump = match color {
+            Color::White => 8,
+            Color::Black => -8,
+        };
+        Self::try_from(self as i8 + jump).ok()
+    }
+
+    pub fn down(self, color: Color) -> Option<Self> {
+        self.up(!color)
+    }
+
+    pub fn left(self, color: Color) -> Option<Self> {
+        self.right(!color)
+    }
+
+    pub fn right(self, color: Color) -> Option<Self> {
+        match color {
+            Color::White => match self.file() {
+                File::H => None,
+                _ => Self::try_from(self as i8 + 1).ok(),
+            },
+            Color::Black => match self.file() {
+                File::A => None,
+                _ => Self::try_from(self as i8 - 1).ok(),
+            },
         }
     }
 }
