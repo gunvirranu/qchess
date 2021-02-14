@@ -1,4 +1,5 @@
 use std::convert::TryFrom;
+use std::error::Error;
 use std::fmt;
 
 use crate::{BoardPiece, CastlingRights, Color, File, Rank, Square};
@@ -144,5 +145,32 @@ impl fmt::Display for Board {
         }
         writeln!(f, "   ╚═════════════════╝")?;
         writeln!(f, "     a b c d e f g h")
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct FenError;
+
+impl Error for FenError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
+}
+
+impl From<()> for FenError {
+    fn from(_: ()) -> Self {
+        Self
+    }
+}
+
+impl fmt::Debug for FenError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "FenError(\"{}\")", self)
+    }
+}
+
+impl fmt::Display for FenError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Invalid FEN string")
     }
 }
