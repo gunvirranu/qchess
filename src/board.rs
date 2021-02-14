@@ -1,8 +1,9 @@
 use std::convert::TryFrom;
 use std::error::Error;
 use std::fmt;
+use std::str::FromStr;
 
-use crate::{BoardPiece, CastlingRights, Color, File, Rank, Square};
+use crate::{BoardPiece, CastlingRights, Color, File, Rank, SidePiece, Square};
 
 const INIT_FEN_LEN: usize = 8 * 8 + 7 + 1 + 4 + 2 + 2 + 3 + 5;
 
@@ -44,6 +45,83 @@ impl Board {
 
     pub fn set_piece_at(&mut self, sq: Square, piece: BoardPiece) {
         self.array[sq as usize] = piece;
+    }
+
+    // Doesn't completely validate on purpose, just some checks here and there.
+    pub fn from_fen(fen: &str) -> Result<Self, FenError> {
+        let fen_vec: Vec<&str> = fen.split_ascii_whitespace().collect();
+        if fen_vec.len() != 6 {
+            return Err(FenError);
+        }
+        let mut board = Self::empty();
+        // 1. Piece placement
+        let ranks: Vec<&str> = fen_vec[0].rsplit('/').collect();
+        if ranks.len() != 8 {
+            return Err(FenError);
+        }
+        // Construct board
+        let mut sq = 0u8;
+        for rank in ranks.iter() {
+            let prev_sq = sq;
+            for letter in rank.chars() {
+                let piece = {
+                    if let Ok(spiece) = SidePiece::try_from(letter) {
+                        BoardPiece::Piece(spiece)
+                    } else {
+                        let n = letter.to_digit(9).ok_or(())?;
+                        sq += n as u8 - 1;
+                        BoardPiece::Empty
+                    }
+                };
+                let square = Square::try_from(sq).unwrap();
+                board.set_piece_at(square, piece);
+                sq += 1;
+            }
+            if prev_sq + 8 != sq {
+                return Err(FenError);
+            }
+        }
+        // 2. Side to move
+        board.turn = match fen_vec[1] {
+            "w" => Color::White,
+            "b" => Color::Black,
+            _ => return Err(FenError),
+        };
+        // 3. Castling rights
+        board.castle_rights = {
+            let (mut wk, mut wq, mut bk, mut bq) = (false, false, false, false);
+            if fen_vec[2] != "-" {
+                for letter in fen_vec[2].chars() {
+                    match letter {
+                        'K' => wk = true,
+                        'Q' => wq = true,
+                        'k' => bk = true,
+                        'q' => bq = true,
+                        _ => return Err(FenError),
+                    }
+                }
+            }
+            CastlingRights::new(wk, wq, bk, bq)
+        };
+        // 4. En passant
+        board.ep_file = {
+            if fen_vec[3] == "-" {
+                None
+            } else {
+                let sq = Square::from_str(fen_vec[3])?;
+                if (board.turn == Color::White && sq.rank() != Rank::R6)
+                    || (board.turn == Color::Black && sq.rank() != Rank::R3)
+                {
+                    return Err(FenError);
+                }
+                Some(sq.file())
+            }
+        };
+        // 5. Halfmove clock
+        board.halfmove_clock = fen_vec[4].parse().map_err(|_| FenError)?;
+        // 6. Fullmove counter
+        board.fullmove_count = fen_vec[5].parse().map_err(|_| FenError)?;
+        Ok(board)
     }
 
     // Convert board to FEN
