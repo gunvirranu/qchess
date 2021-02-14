@@ -257,3 +257,15 @@ impl fmt::Display for FenError {
         write!(f, "Invalid FEN string")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_to_default_fen() {
+        let board = Board::default();
+        let fen = board.to_fen();
+        assert_eq!(fen, DEFAULT_FEN);
+    }
+}
