@@ -115,3 +115,28 @@ impl fmt::Display for CastlingRights {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_castling_rights() {
+        for &(a, b, c, d) in [
+            (false, false, false, false),
+            (false, false, false, true),
+            (false, true, false, true),
+            (true, false, false, false),
+            (true, false, true, false),
+            (true, true, true, true),
+        ]
+        .iter()
+        {
+            let rights = CastlingRights::new(a, b, c, d);
+            assert_eq!(rights.white_king(), a);
+            assert_eq!(rights.white_queen(), b);
+            assert_eq!(rights.black_king(), c);
+            assert_eq!(rights.black_queen(), d);
+        }
+    }
+}
