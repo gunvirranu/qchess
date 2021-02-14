@@ -1,3 +1,3 @@
 mod piece;
 
-use piece::*;
+pub use piece::*;
