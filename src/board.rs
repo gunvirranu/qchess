@@ -3,10 +3,12 @@ use std::error::Error;
 use std::fmt;
 use std::str::FromStr;
 
-use crate::{BoardPiece, CastlingRights, Color, File, Rank, SidePiece, Square};
+use crate::moves::StateChange;
+use crate::{BoardPiece, CastlingRights, Color, File, Move, MoveType, Rank, SidePiece, Square};
 
 const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const INIT_FEN_LEN: usize = 8 * 8 + 7 + 1 + 4 + 2 + 2 + 3 + 5;
+const INIT_MOVE_HIST_LEN: usize = 32;
 
 #[derive(Clone)]
 pub struct Board {
@@ -16,6 +18,7 @@ pub struct Board {
     pub castle_rights: CastlingRights,
     pub halfmove_clock: u8,
     pub fullmove_count: u16,
+    history: Vec<StateChange>,
 }
 
 impl Board {
@@ -27,6 +30,7 @@ impl Board {
             castle_rights: CastlingRights::none(),
             halfmove_clock: 0,
             fullmove_count: 1,
+            history: Vec::with_capacity(INIT_MOVE_HIST_LEN),
         }
     }
 
@@ -159,6 +163,61 @@ impl Board {
         // 6. Fullmove counter
         fen.push_str(&format!(" {}", self.fullmove_count));
         fen
+    }
+
+    pub fn make_move(&mut self, mv: Move) {
+        // TODO: Change assertions to debug
+        let from_bpiece = self.piece_at(mv.from());
+        let to_bpiece = self.piece_at(mv.to());
+        if let BoardPiece::Piece(piece) = from_bpiece {
+            assert_eq!(piece.color(), self.turn, "Cannot move enemy piece");
+        } else {
+            unreachable!("A piece must be moved");
+        }
+        if let BoardPiece::Piece(piece) = to_bpiece {
+            assert_eq!(piece.color(), !self.turn, "Must capture enemy piece");
+        }
+
+        let state = StateChange {
+            last_move: mv,
+            captured: to_bpiece,
+            last_ep_file: self.ep_file,
+            last_castle_rights: self.castle_rights,
+        };
+        self.set_piece_at(mv.to(), from_bpiece);
+        self.set_piece_at(mv.from(), BoardPiece::Empty);
+        self.ep_file = None;
+
+        match mv.move_type() {
+            MoveType::Normal => {}
+
+            MoveType::DoublePush => {
+                // FIXME: Implement double-push
+                unimplemented!("Make double-push move");
+            }
+
+            MoveType::EnPassant => {
+                // FIXME: Implement en-passant
+                unimplemented!("Make en-passant move");
+            }
+
+            MoveType::Castle => {
+                // FIXME: Implement castling
+                unimplemented!("Make castle move");
+            }
+
+            MoveType::Promotion(_promo) => {
+                // FIXME: Implement promotion
+                unimplemented!("Make promotion move");
+            }
+        }
+
+        self.history.push(state);
+        // FIXME: Increment halfmove clock
+        if self.turn == Color::Black {
+            self.fullmove_count += 1;
+        }
+        self.turn = !self.turn;
     }
 }
 
