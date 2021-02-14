@@ -4,7 +4,9 @@ use std::fmt;
 use std::str::FromStr;
 
 use crate::moves::StateChange;
-use crate::{BoardPiece, CastlingRights, Color, File, Move, MoveType, Rank, SidePiece, Square};
+use crate::{
+    BoardPiece, CastlingRights, Color, File, Move, MoveType, PieceType, Rank, SidePiece, Square,
+};
 
 const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const INIT_FEN_LEN: usize = 8 * 8 + 7 + 1 + 4 + 2 + 2 + 3 + 5;
@@ -253,9 +255,24 @@ impl Board {
                 unimplemented!("Make castle move");
             }
 
-            MoveType::Promotion(_promo) => {
-                // FIXME: Implement promotion
-                unimplemented!("Make promotion move");
+            MoveType::Promotion(promo) => {
+                assert_eq!(
+                    mv.to().rank(),
+                    match self.turn {
+                        Color::White => Rank::R8,
+                        Color::Black => Rank::R1,
+                    },
+                    "Promotion cannot occur on non-terminal rank"
+                );
+                assert!(
+                    matches!(
+                        promo,
+                        PieceType::Rook | PieceType::Bishop | PieceType::Knight | PieceType::Queen
+                    ),
+                    "Promotion piece must be valid"
+                );
+                // Promote pawn to promoted piece
+                self.set_piece_at(mv.to(), BoardPiece::piece(promo, self.turn));
             }
         }
 
