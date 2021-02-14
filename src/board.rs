@@ -202,8 +202,50 @@ impl Board {
             }
 
             MoveType::EnPassant => {
-                // FIXME: Implement en-passant
-                unimplemented!("Make en-passant move");
+                assert_eq!(
+                    Some(mv.to().file()),
+                    self.ep_file,
+                    "En-passant file must match board"
+                );
+                assert_eq!(
+                    mv.from().rank(),
+                    match self.turn {
+                        Color::White => Rank::R5,
+                        Color::Black => Rank::R4,
+                    },
+                    "En-passant must be from rank 5 (white) or 4 (black)"
+                );
+                assert_eq!(
+                    mv.to().rank(),
+                    match self.turn {
+                        Color::White => Rank::R6,
+                        Color::Black => Rank::R3,
+                    },
+                    "En-passant must be to rank 6 (white) or 3 (black)"
+                );
+                assert_eq!(
+                    (mv.from().file() as i8 - mv.to().file() as i8).abs(),
+                    1,
+                    "En-passant must be a single diagonal step"
+                );
+                assert_eq!(
+                    to_bpiece,
+                    BoardPiece::Empty,
+                    "En-passant to location must be empty"
+                );
+
+                if let Some(ep_pawn_sq) = mv.to().down(self.turn) {
+                    assert_eq!(
+                        self.piece_at(ep_pawn_sq),
+                        BoardPiece::piece(PieceType::Pawn, !self.turn),
+                        "Must be an enemy pawn behind en-passant square"
+                    );
+
+                    // Capture double-pushed pawn
+                    self.set_piece_at(ep_pawn_sq, BoardPiece::Empty);
+                } else {
+                    unreachable!("Invalid en-passant square");
+                }
             }
 
             MoveType::Castle => {
