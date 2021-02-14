@@ -71,3 +71,30 @@ impl fmt::Debug for Board {
         writeln!(f, "    a b c d e f g h")
     }
 }
+
+impl fmt::Display for Board {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "   ╔═════════════════╗")?;
+        for i in (0u8..8).rev() {
+            write!(f, " {} ║", i + 1)?;
+            for j in 0..8 {
+                let sq = Square::try_from((i, j)).unwrap();
+                match self.piece_at(sq) {
+                    BoardPiece::Empty => {
+                        if i % 2 == j % 2 {
+                            write!(f, " ·")?;
+                        } else {
+                            write!(f, "  ")?;
+                        }
+                    }
+                    BoardPiece::Piece(piece) => {
+                        write!(f, " {}", piece)?;
+                    }
+                }
+            }
+            writeln!(f, " ║")?;
+        }
+        writeln!(f, "   ╚═════════════════╝")?;
+        writeln!(f, "     a b c d e f g h")
+    }
+}
