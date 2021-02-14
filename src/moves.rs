@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{PieceType, Square};
+use crate::{BoardPiece, File, PieceType, Square};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MoveType {
@@ -20,6 +20,14 @@ pub struct Move {
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct CastlingRights(u8);
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct StateChange {
+    pub last_move: Move,
+    pub captured: BoardPiece,
+    pub last_ep_file: Option<File>,
+    pub last_castle_rights: CastlingRights,
+}
 
 impl Move {
     pub fn new(from: Square, to: Square, move_type: MoveType) -> Self {
