@@ -1,5 +1,6 @@
 use std::convert::TryFrom;
 use std::fmt;
+use std::str::FromStr;
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -132,6 +133,20 @@ impl fmt::Display for Square {
     }
 }
 
+impl FromStr for Square {
+    type Err = ();
+
+    fn from_str(sq_str: &str) -> Result<Self, Self::Err> {
+        let mut sq_str_iter = sq_str.chars();
+        let file = File::try_from(sq_str_iter.next().ok_or(())?)?;
+        let rank = Rank::try_from(sq_str_iter.next().ok_or(())?)?;
+        if sq_str_iter.next().is_some() {
+            return Err(());
+        }
+        Ok(Self::from((rank, file)))
+    }
+}
+
 impl TryFrom<u8> for Rank {
     type Error = ();
 
@@ -151,6 +166,24 @@ impl TryFrom<u8> for Rank {
     }
 }
 
+impl TryFrom<char> for Rank {
+    type Error = ();
+
+    fn try_from(digit: char) -> Result<Self, Self::Error> {
+        match digit {
+            '1' => Ok(Self::R1),
+            '2' => Ok(Self::R2),
+            '3' => Ok(Self::R3),
+            '4' => Ok(Self::R4),
+            '5' => Ok(Self::R5),
+            '6' => Ok(Self::R6),
+            '7' => Ok(Self::R7),
+            '8' => Ok(Self::R8),
+            _ => Err(()),
+        }
+    }
+}
+
 impl TryFrom<u8> for File {
     type Error = ();
 
@@ -165,6 +198,24 @@ impl TryFrom<u8> for File {
             5 => Ok(Self::F),
             6 => Ok(Self::G),
             7 => Ok(Self::H),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<char> for File {
+    type Error = ();
+
+    fn try_from(letter: char) -> Result<Self, Self::Error> {
+        match letter {
+            'a' => Ok(Self::A),
+            'b' => Ok(Self::B),
+            'c' => Ok(Self::C),
+            'd' => Ok(Self::D),
+            'e' => Ok(Self::E),
+            'f' => Ok(Self::F),
+            'g' => Ok(Self::G),
+            'h' => Ok(Self::H),
             _ => Err(()),
         }
     }
