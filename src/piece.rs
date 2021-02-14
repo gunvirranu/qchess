@@ -32,6 +32,13 @@ pub enum SidePiece {
     BKing,
 }
 
+// Yes, this is basically an Option, but I wanted a type, not just an alias.
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub enum BoardPiece {
+    Empty,
+    Piece(SidePiece),
+}
+
 impl std::ops::Not for Color {
     type Output = Color;
 
@@ -133,6 +140,21 @@ impl fmt::Display for SidePiece {
             BKing => '♚',
         };
         write!(f, "{}", c)
+    }
+}
+
+impl BoardPiece {
+    pub fn piece(piece_type: PieceType, color: Color) -> Self {
+        Self::Piece(SidePiece::from((piece_type, color)))
+    }
+}
+
+impl fmt::Debug for BoardPiece {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Piece(side_piece) => write!(f, "({:?})", side_piece),
+            Self::Empty => write!(f, "Empty"),
+        }
     }
 }
 
