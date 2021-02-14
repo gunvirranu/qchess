@@ -1,3 +1,4 @@
+use std::convert::TryFrom;
 use std::fmt;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -97,6 +98,29 @@ impl From<(PieceType, Color)> for SidePiece {
                 Queen => BQueen,
                 King => BKing,
             },
+        }
+    }
+}
+
+impl TryFrom<char> for SidePiece {
+    type Error = ();
+
+    fn try_from(letter: char) -> Result<Self, Self::Error> {
+        use SidePiece::*;
+        match letter {
+            'K' => Ok(WKing),
+            'Q' => Ok(WQueen),
+            'R' => Ok(WRook),
+            'B' => Ok(WBishop),
+            'N' => Ok(WKnight),
+            'P' => Ok(WPawn),
+            'k' => Ok(BKing),
+            'q' => Ok(BQueen),
+            'r' => Ok(BRook),
+            'b' => Ok(BBishop),
+            'n' => Ok(BKnight),
+            'p' => Ok(BPawn),
+            _ => Err(()),
         }
     }
 }

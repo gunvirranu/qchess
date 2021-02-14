@@ -1,4 +1,5 @@
 use std::fmt;
+use std::str::FromStr;
 
 use crate::{BoardPiece, File, PieceType, Square};
 
@@ -91,6 +92,30 @@ impl CastlingRights {
 
     pub fn black_queen(self) -> bool {
         self.0 & 0b0001 != 0
+    }
+}
+
+impl FromStr for CastlingRights {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s == "-" {
+            return Ok(Self::none());
+        }
+        if s.is_empty() || s.len() > 4 {
+            return Err(());
+        }
+        let (mut wk, mut wq, mut bk, mut bq) = (false, false, false, false);
+        for letter in s.chars() {
+            match letter {
+                'K' => wk = true,
+                'Q' => wq = true,
+                'k' => bk = true,
+                'q' => bq = true,
+                _ => return Err(()),
+            }
+        }
+        Ok(Self::new(wk, wq, bk, bq))
     }
 }
 
