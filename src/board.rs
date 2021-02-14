@@ -192,8 +192,13 @@ impl Board {
             MoveType::Normal => {}
 
             MoveType::DoublePush => {
-                // FIXME: Implement double-push
-                unimplemented!("Make double-push move");
+                assert_eq!(
+                    mv.from().file(),
+                    mv.to().file(),
+                    "Double pawn push cannot change file"
+                );
+                // Set en-passant target
+                self.ep_file = Some(mv.to().file());
             }
 
             MoveType::EnPassant => {
