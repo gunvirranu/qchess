@@ -30,7 +30,7 @@ pub enum File {
     A, B, C, D, E, F, G, H,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct SquareIter {
     index: u8,
 }
@@ -265,9 +265,9 @@ impl Iterator for SquareIter {
     type Item = Square;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let sq_opt = Self::Item::try_from(self.index).ok();
+        let sq = Self::Item::try_from(self.index).ok()?;
         self.index += 1;
-        sq_opt
+        Some(sq)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -278,7 +278,7 @@ impl Iterator for SquareIter {
 
 impl ExactSizeIterator for SquareIter {
     fn len(&self) -> usize {
-        64 - self.index as usize
+        64usize - (self.index as usize)
     }
 }
 
