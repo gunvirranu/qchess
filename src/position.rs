@@ -281,3 +281,32 @@ impl ExactSizeIterator for SquareIter {
         64 - self.index as usize
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use Color::*;
+    use File::*;
+    use Rank::*;
+    use Square::*;
+
+    #[test]
+    fn test_square_rank() {
+        assert_eq!(A1.rank(), R1);
+        assert_eq!(A8.rank(), R8);
+        assert_eq!(C3.rank(), R3);
+        assert_eq!(F7.rank(), R7);
+        assert_eq!(H1.rank(), R1);
+        assert_eq!(H8.rank(), R8);
+    }
+
+    #[test]
+    fn test_square_file() {
+        assert_eq!(A1.file(), A);
+        assert_eq!(A8.file(), A);
+        assert_eq!(C3.file(), C);
+        assert_eq!(F7.file(), F);
+        assert_eq!(H1.file(), H);
+        assert_eq!(H3.file(), H);
+    }
+}
