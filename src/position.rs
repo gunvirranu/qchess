@@ -30,6 +30,11 @@ pub enum File {
     A, B, C, D, E, F, G, H,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct SquareIter {
+    index: u8,
+}
+
 impl Square {
     pub fn rank(self) -> Rank {
         use Square::*;
@@ -88,6 +93,10 @@ impl Square {
                 _ => Self::try_from(self as i8 - 1).ok(),
             },
         }
+    }
+
+    pub fn iter() -> SquareIter {
+        SquareIter { index: 0 }
     }
 }
 
@@ -249,5 +258,26 @@ impl TryFrom<char> for File {
             'h' => Ok(Self::H),
             _ => Err(()),
         }
+    }
+}
+
+impl Iterator for SquareIter {
+    type Item = Square;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let sq_opt = Self::Item::try_from(self.index).ok();
+        self.index += 1;
+        sq_opt
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let n = self.len();
+        (n, Some(n))
+    }
+}
+
+impl ExactSizeIterator for SquareIter {
+    fn len(&self) -> usize {
+        64 - self.index as usize
     }
 }
