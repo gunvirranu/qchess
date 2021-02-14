@@ -131,3 +131,41 @@ impl fmt::Display for Square {
         write!(f, "{}", s_str)
     }
 }
+
+impl TryFrom<u8> for Rank {
+    type Error = ();
+
+    fn try_from(index: u8) -> Result<Self, Self::Error> {
+        // TODO: Benchmark against bit version
+        match index {
+            0 => Ok(Self::R1),
+            1 => Ok(Self::R2),
+            2 => Ok(Self::R3),
+            3 => Ok(Self::R4),
+            4 => Ok(Self::R5),
+            5 => Ok(Self::R6),
+            6 => Ok(Self::R7),
+            7 => Ok(Self::R8),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<u8> for File {
+    type Error = ();
+
+    fn try_from(index: u8) -> Result<Self, Self::Error> {
+        // TODO: Benchmark against bit version
+        match index {
+            0 => Ok(Self::A),
+            1 => Ok(Self::B),
+            2 => Ok(Self::C),
+            3 => Ok(Self::D),
+            4 => Ok(Self::E),
+            5 => Ok(Self::F),
+            6 => Ok(Self::G),
+            7 => Ok(Self::H),
+            _ => Err(()),
+        }
+    }
+}
