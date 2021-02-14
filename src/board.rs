@@ -1,3 +1,6 @@
+use std::convert::TryFrom;
+use std::fmt;
+
 use crate::{BoardPiece, CastlingRights, Color, File, Rank, Square};
 
 #[derive(Clone)]
@@ -38,5 +41,33 @@ impl Board {
 
     pub fn set_piece_at(&mut self, sq: Square, piece: BoardPiece) {
         self.array[sq as usize] = piece;
+    }
+}
+
+impl fmt::Debug for Board {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Side to move     {:?}", self.turn)?;
+        writeln!(f, "Castling rights  {:?}", self.castle_rights)?;
+        writeln!(f, "En passant       {:?}", self.ep_square())?;
+        writeln!(f, "Halfmove clock   {:?}", self.halfmove_clock)?;
+        writeln!(f, "Fullmove count   {:?}", self.fullmove_count)?;
+        writeln!(f, "  +-----------------+")?;
+        for i in (0u8..8).rev() {
+            write!(f, "{} |", i + 1)?;
+            for j in 0..8 {
+                let sq = Square::try_from((i, j)).unwrap();
+                match self.piece_at(sq) {
+                    BoardPiece::Empty => {
+                        write!(f, " -")?;
+                    }
+                    BoardPiece::Piece(piece) => {
+                        write!(f, " {:?}", piece)?;
+                    }
+                }
+            }
+            writeln!(f, " |")?;
+        }
+        writeln!(f, "  +-----------------+")?;
+        writeln!(f, "    a b c d e f g h")
     }
 }
