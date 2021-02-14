@@ -437,4 +437,28 @@ mod tests {
         assert_eq!(Rank::try_from('0'), Err(()));
         assert_eq!(Rank::try_from('9'), Err(()));
     }
+
+    #[test]
+    fn test_file_from_num() {
+        assert_eq!(File::try_from(0), Ok(A));
+        assert_eq!(File::try_from(1), Ok(B));
+        assert_eq!(File::try_from(2), Ok(C));
+        assert_eq!(File::try_from(3), Ok(D));
+        assert_eq!(File::try_from(4), Ok(E));
+        assert_eq!(File::try_from(5), Ok(F));
+        assert_eq!(File::try_from(6), Ok(G));
+        assert_eq!(File::try_from(7), Ok(H));
+        assert_eq!(File::try_from(8), Err(()));
+    }
+
+    #[test]
+    fn test_file_from_char() {
+        assert_eq!(File::try_from('a'), Ok(A));
+        assert_eq!(File::try_from('b'), Ok(B));
+        assert_eq!(File::try_from('e'), Ok(E));
+        assert_eq!(File::try_from('h'), Ok(H));
+        assert_eq!(File::try_from('0'), Err(()));
+        assert_eq!(File::try_from('i'), Err(()));
+        assert_eq!(File::try_from('A'), Err(()));
+    }
 }
