@@ -5,6 +5,7 @@ use std::str::FromStr;
 
 use crate::{BoardPiece, CastlingRights, Color, File, Rank, SidePiece, Square};
 
+const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const INIT_FEN_LEN: usize = 8 * 8 + 7 + 1 + 4 + 2 + 2 + 3 + 5;
 
 #[derive(Clone)]
@@ -27,6 +28,10 @@ impl Board {
             halfmove_clock: 0,
             fullmove_count: 1,
         }
+    }
+
+    pub fn default() -> Self {
+        Self::from_fen(DEFAULT_FEN).unwrap()
     }
 
     pub fn ep_square(&self) -> Option<Square> {
