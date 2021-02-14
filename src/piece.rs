@@ -135,3 +135,59 @@ impl fmt::Display for SidePiece {
         write!(f, "{}", c)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use Color::*;
+    use PieceType::*;
+    use SidePiece::*;
+
+    #[test]
+    fn test_sidepiece_piece_type() {
+        assert_eq!(WPawn.piece_type(), Pawn);
+        assert_eq!(BPawn.piece_type(), Pawn);
+        assert_eq!(WRook.piece_type(), Rook);
+        assert_eq!(BRook.piece_type(), Rook);
+        assert_eq!(WKnight.piece_type(), Knight);
+        assert_eq!(WKnight.piece_type(), Knight);
+        assert_eq!(WBishop.piece_type(), Bishop);
+        assert_eq!(BBishop.piece_type(), Bishop);
+        assert_eq!(WQueen.piece_type(), Queen);
+        assert_eq!(BQueen.piece_type(), Queen);
+        assert_eq!(WKing.piece_type(), King);
+        assert_eq!(BKing.piece_type(), King);
+    }
+
+    #[test]
+    fn test_sidepiece_color() {
+        assert_eq!(WPawn.color(), White);
+        assert_eq!(WRook.color(), White);
+        assert_eq!(WKnight.color(), White);
+        assert_eq!(WBishop.color(), White);
+        assert_eq!(WQueen.color(), White);
+        assert_eq!(WKing.color(), White);
+        assert_eq!(BPawn.color(), Black);
+        assert_eq!(BRook.color(), Black);
+        assert_eq!(BKnight.color(), Black);
+        assert_eq!(BBishop.color(), Black);
+        assert_eq!(BQueen.color(), Black);
+        assert_eq!(BKing.color(), Black);
+    }
+
+    #[test]
+    fn test_sidepiece_from_piecetype_color() {
+        assert_eq!(SidePiece::from((Pawn, White)), WPawn);
+        assert_eq!(SidePiece::from((Pawn, Black)), BPawn);
+        assert_eq!(SidePiece::from((Rook, White)), WRook);
+        assert_eq!(SidePiece::from((Rook, Black)), BRook);
+        assert_eq!(SidePiece::from((Knight, White)), WKnight);
+        assert_eq!(SidePiece::from((Knight, Black)), BKnight);
+        assert_eq!(SidePiece::from((Bishop, White)), WBishop);
+        assert_eq!(SidePiece::from((Bishop, Black)), BBishop);
+        assert_eq!(SidePiece::from((Queen, White)), WQueen);
+        assert_eq!(SidePiece::from((Queen, Black)), BQueen);
+        assert_eq!(SidePiece::from((King, White)), WKing);
+        assert_eq!(SidePiece::from((King, Black)), BKing);
+    }
+}
