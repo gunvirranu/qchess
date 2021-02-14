@@ -461,4 +461,18 @@ mod tests {
         assert_eq!(File::try_from('i'), Err(()));
         assert_eq!(File::try_from('A'), Err(()));
     }
+
+    #[test]
+    fn test_square_iter() {
+        assert_eq!(Square::iter().count(), 64);
+        assert_eq!(Square::iter().len(), 64);
+        let mut sq_iter = Square::iter();
+        assert_eq!(sq_iter.next(), Some(Square::A1));
+        assert_eq!(sq_iter.next(), Some(Square::B1));
+        assert_eq!(sq_iter.len(), 64 - 2);
+        assert_eq!(sq_iter.nth(6), Some(Square::A2));
+        assert_eq!(sq_iter.nth(7), Some(Square::A3));
+        assert_eq!(sq_iter.next(), Some(Square::B3));
+        assert_eq!(sq_iter.last(), Some(Square::H8));
+    }
 }
