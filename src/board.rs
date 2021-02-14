@@ -3,6 +3,8 @@ use std::fmt;
 
 use crate::{BoardPiece, CastlingRights, Color, File, Rank, Square};
 
+const INIT_FEN_LEN: usize = 8 * 8 + 7 + 1 + 4 + 2 + 2 + 3 + 5;
+
 #[derive(Clone)]
 pub struct Board {
     array: [BoardPiece; 64],
@@ -41,6 +43,52 @@ impl Board {
 
     pub fn set_piece_at(&mut self, sq: Square, piece: BoardPiece) {
         self.array[sq as usize] = piece;
+    }
+
+    // Convert board to FEN
+    pub fn to_fen(&self) -> String {
+        let mut fen = String::with_capacity(INIT_FEN_LEN);
+        // 1. Piece placement
+        let mut empty = 0;
+        for r in (0u8..8).rev() {
+            for f in 0..8 {
+                let sq = Square::try_from((r, f)).unwrap();
+                match self.piece_at(sq) {
+                    BoardPiece::Empty => empty += 1,
+                    BoardPiece::Piece(piece) => {
+                        if empty != 0 {
+                            fen.push_str(&empty.to_string());
+                        }
+                        fen.push_str(&format!("{:?}", piece));
+                        empty = 0;
+                    }
+                }
+            }
+            if empty != 0 {
+                fen.push_str(&empty.to_string());
+                empty = 0;
+            }
+            fen.push('/');
+        }
+        fen.pop();
+        // 2. Side to move
+        fen.push(' ');
+        fen.push(match self.turn {
+            Color::White => 'w',
+            Color::Black => 'b',
+        });
+        // 3. Castling rights
+        fen.push_str(&format!(" {}", self.castle_rights));
+        // 4. En passant
+        match self.ep_square() {
+            None => fen.push_str(" -"),
+            Some(sq) => fen.push_str(&format!(" {}", sq)),
+        }
+        // 5. Halfmove clock
+        fen.push_str(&format!(" {}", self.halfmove_clock));
+        // 6. Fullmove counter
+        fen.push_str(&format!(" {}", self.fullmove_count));
+        fen
     }
 }
 
