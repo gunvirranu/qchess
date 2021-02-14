@@ -365,4 +365,41 @@ mod tests {
         assert_eq!(H8.right(Black), Some(G8));
         assert_eq!(H8.right(White), None);
     }
+
+    #[test]
+    fn test_square_from_rank_file() {
+        assert_eq!(Square::from((R1, A)), A1);
+        assert_eq!(Square::from((R1, H)), H1);
+        assert_eq!(Square::from((R5, A)), A5);
+        assert_eq!(Square::from((R7, F)), F7);
+        assert_eq!(Square::from((R8, A)), A8);
+        assert_eq!(Square::from((R8, H)), H8);
+    }
+
+    #[test]
+    fn test_square_from_coords() {
+        assert_eq!(Square::try_from((0u8, 0)), Ok(A1));
+        assert_eq!(Square::try_from((0u8, 7)), Ok(H1));
+        assert_eq!(Square::try_from((4u8, 0)), Ok(A5));
+        assert_eq!(Square::try_from((6u8, 5)), Ok(F7));
+        assert_eq!(Square::try_from((7u8, 0)), Ok(A8));
+        assert_eq!(Square::try_from((7u8, 7)), Ok(H8));
+        assert_eq!(Square::try_from((0u8, 8)), Err(()));
+        assert_eq!(Square::try_from((8u8, 0)), Err(()));
+    }
+
+    #[test]
+    fn test_square_from_num() {
+        assert_eq!(Square::try_from(0u8), Ok(A1));
+        assert_eq!(Square::try_from(1u8), Ok(B1));
+        assert_eq!(Square::try_from(7u8), Ok(H1));
+        assert_eq!(Square::try_from(8u8), Ok(A2));
+        assert_eq!(Square::try_from(33u8), Ok(B5));
+        assert_eq!(Square::try_from(44u8), Ok(E6));
+        assert_eq!(Square::try_from(54u8), Ok(G7));
+        assert_eq!(Square::try_from(56u8), Ok(A8));
+        assert_eq!(Square::try_from(63u8), Ok(H8));
+        assert_eq!(Square::try_from(64u8), Err(()));
+        assert_eq!(Square::try_from(100u8), Err(()));
+    }
 }
