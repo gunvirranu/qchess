@@ -309,4 +309,60 @@ mod tests {
         assert_eq!(H1.file(), H);
         assert_eq!(H3.file(), H);
     }
+
+    #[test]
+    fn test_square_up() {
+        assert_eq!(A1.up(White), Some(A2));
+        assert_eq!(A1.up(Black), None);
+        assert_eq!(H1.up(White), Some(H2));
+        assert_eq!(H1.up(Black), None);
+        assert_eq!(C4.up(Black), Some(C3));
+        assert_eq!(E5.up(White), Some(E6));
+        assert_eq!(B8.up(White), None);
+        assert_eq!(B8.up(Black), Some(B7));
+        assert_eq!(H8.up(White), None);
+        assert_eq!(H8.up(Black), Some(H7));
+    }
+
+    #[test]
+    fn test_square_down() {
+        assert_eq!(A1.down(White), None);
+        assert_eq!(A1.down(Black), Some(A2));
+        assert_eq!(H1.down(White), None);
+        assert_eq!(H1.down(Black), Some(H2));
+        assert_eq!(C4.down(Black), Some(C5));
+        assert_eq!(E5.down(White), Some(E4));
+        assert_eq!(B8.down(White), Some(B7));
+        assert_eq!(B8.down(Black), None);
+        assert_eq!(H8.down(White), Some(H7));
+        assert_eq!(H8.down(Black), None);
+    }
+
+    #[test]
+    fn test_square_left() {
+        assert_eq!(A1.left(White), None);
+        assert_eq!(A1.left(Black), Some(B1));
+        assert_eq!(H1.left(White), Some(G1));
+        assert_eq!(H1.left(Black), None);
+        assert_eq!(A3.left(White), None);
+        assert_eq!(H3.left(White), Some(G3));
+        assert_eq!(D7.left(White), Some(C7));
+        assert_eq!(D7.left(Black), Some(E7));
+        assert_eq!(H8.left(White), Some(G8));
+        assert_eq!(H8.left(Black), None);
+    }
+
+    #[test]
+    fn test_square_right() {
+        assert_eq!(A1.right(Black), None);
+        assert_eq!(A1.right(White), Some(B1));
+        assert_eq!(H1.right(Black), Some(G1));
+        assert_eq!(H1.right(White), None);
+        assert_eq!(A3.right(Black), None);
+        assert_eq!(H3.right(Black), Some(G3));
+        assert_eq!(D7.right(Black), Some(C7));
+        assert_eq!(D7.right(White), Some(E7));
+        assert_eq!(H8.right(Black), Some(G8));
+        assert_eq!(H8.right(White), None);
+    }
 }
