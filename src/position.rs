@@ -1,4 +1,5 @@
 use std::convert::TryFrom;
+use std::fmt;
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -120,5 +121,13 @@ impl TryFrom<i8> for Square {
 
     fn try_from(index: i8) -> Result<Self, Self::Error> {
         Self::try_from(index as u8)
+    }
+}
+
+impl fmt::Display for Square {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut s_str = format!("{:?}", self);
+        s_str.make_ascii_lowercase();
+        write!(f, "{}", s_str)
     }
 }
