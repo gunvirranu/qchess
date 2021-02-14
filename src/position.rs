@@ -402,4 +402,15 @@ mod tests {
         assert_eq!(Square::try_from(64u8), Err(()));
         assert_eq!(Square::try_from(100u8), Err(()));
     }
+
+    #[test]
+    fn test_square_parse() {
+        for sq in Square::iter() {
+            let sq_str = format!("{}", sq);
+            assert_eq!(Square::from_str(&sq_str), Ok(sq));
+        }
+        assert_eq!(Square::from_str("a0"), Err(()));
+        assert_eq!(Square::from_str("d9"), Err(()));
+        assert_eq!(Square::from_str("i1"), Err(()));
+    }
 }
