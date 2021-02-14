@@ -413,4 +413,28 @@ mod tests {
         assert_eq!(Square::from_str("d9"), Err(()));
         assert_eq!(Square::from_str("i1"), Err(()));
     }
+
+    #[test]
+    fn test_rank_from_num() {
+        assert_eq!(Rank::try_from(0), Ok(R1));
+        assert_eq!(Rank::try_from(1), Ok(R2));
+        assert_eq!(Rank::try_from(2), Ok(R3));
+        assert_eq!(Rank::try_from(3), Ok(R4));
+        assert_eq!(Rank::try_from(4), Ok(R5));
+        assert_eq!(Rank::try_from(5), Ok(R6));
+        assert_eq!(Rank::try_from(6), Ok(R7));
+        assert_eq!(Rank::try_from(7), Ok(R8));
+        assert_eq!(Rank::try_from(8), Err(()));
+    }
+
+    #[test]
+    fn test_rank_from_char() {
+        assert_eq!(Rank::try_from('1'), Ok(R1));
+        assert_eq!(Rank::try_from('2'), Ok(R2));
+        assert_eq!(Rank::try_from('5'), Ok(R5));
+        assert_eq!(Rank::try_from('8'), Ok(R8));
+        assert_eq!(Rank::try_from('a'), Err(()));
+        assert_eq!(Rank::try_from('0'), Err(()));
+        assert_eq!(Rank::try_from('9'), Err(()));
+    }
 }
