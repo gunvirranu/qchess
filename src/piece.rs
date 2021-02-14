@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Color {
     White,
@@ -89,5 +91,47 @@ impl From<(PieceType, Color)> for SidePiece {
                 King => BKing,
             },
         }
+    }
+}
+
+impl fmt::Debug for SidePiece {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use SidePiece::*;
+        let c = match self {
+            WPawn => 'P',
+            WRook => 'R',
+            WKnight => 'N',
+            WBishop => 'B',
+            WQueen => 'Q',
+            WKing => 'K',
+            BPawn => 'p',
+            BRook => 'r',
+            BKnight => 'n',
+            BBishop => 'b',
+            BQueen => 'q',
+            BKing => 'k',
+        };
+        write!(f, "{}", c)
+    }
+}
+
+impl fmt::Display for SidePiece {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use SidePiece::*;
+        let c = match self {
+            WPawn => '♙',
+            WRook => '♖',
+            WKnight => '♘',
+            WBishop => '♗',
+            WQueen => '♕',
+            WKing => '♔',
+            BPawn => '♟',
+            BRook => '♜',
+            BKnight => '♞',
+            BBishop => '♝',
+            BQueen => '♛',
+            BKing => '♚',
+        };
+        write!(f, "{}", c)
     }
 }
