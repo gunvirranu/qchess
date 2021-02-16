@@ -167,28 +167,19 @@ impl Board {
         fen
     }
 
-    pub fn make_move(&mut self, mv: Move) {
+    fn debug_validate_move(&self, mv: Move) {
         // TODO: Change assertions to debug
         let from_bpiece = self.piece_at(mv.from());
         let to_bpiece = self.piece_at(mv.to());
+
         if let BoardPiece::Piece(piece) = from_bpiece {
             assert_eq!(piece.color(), self.turn, "Cannot move enemy piece");
         } else {
             unreachable!("A piece must be moved");
         }
         if let BoardPiece::Piece(piece) = to_bpiece {
-            assert_eq!(piece.color(), !self.turn, "Must capture enemy piece");
+            assert_eq!(piece.color(), !self.turn, "Cannot capture own piece");
         }
-
-        let state = StateChange {
-            last_move: mv,
-            captured: to_bpiece,
-            last_ep_file: self.ep_file,
-            last_castle_rights: self.castle_rights,
-        };
-        self.set_piece_at(mv.to(), from_bpiece);
-        self.set_piece_at(mv.from(), BoardPiece::Empty);
-        self.ep_file = None;
 
         match mv.move_type() {
             MoveType::Normal => {}
@@ -199,8 +190,6 @@ impl Board {
                     mv.to().file(),
                     "Double pawn push cannot change file"
                 );
-                // Set en-passant target
-                self.ep_file = Some(mv.to().file());
             }
 
             MoveType::EnPassant => {
@@ -235,25 +224,18 @@ impl Board {
                     BoardPiece::Empty,
                     "En-passant to location must be empty"
                 );
-
                 if let Some(ep_pawn_sq) = mv.to().down(self.turn) {
                     assert_eq!(
                         self.piece_at(ep_pawn_sq),
                         BoardPiece::piece(PieceType::Pawn, !self.turn),
                         "Must be an enemy pawn behind en-passant square"
                     );
-
-                    // Capture double-pushed pawn
-                    self.set_piece_at(ep_pawn_sq, BoardPiece::Empty);
                 } else {
                     unreachable!("Invalid en-passant square");
                 }
             }
 
-            MoveType::Castle => {
-                // FIXME: Implement castling
-                unimplemented!("Make castle move");
-            }
+            MoveType::Castle => {}
 
             MoveType::Promotion(promo) => {
                 assert_eq!(
@@ -271,6 +253,47 @@ impl Board {
                     ),
                     "Promotion piece must be valid"
                 );
+            }
+        }
+    }
+
+    pub fn make_move(&mut self, mv: Move) {
+        self.debug_validate_move(mv);
+        let from_bpiece = self.piece_at(mv.from());
+        let to_bpiece = self.piece_at(mv.to());
+        let state = StateChange {
+            last_move: mv,
+            captured: to_bpiece,
+            last_ep_file: self.ep_file,
+            last_castle_rights: self.castle_rights,
+        };
+        self.set_piece_at(mv.to(), from_bpiece);
+        self.set_piece_at(mv.from(), BoardPiece::Empty);
+        self.ep_file = None;
+
+        match mv.move_type() {
+            MoveType::Normal => {}
+
+            MoveType::DoublePush => {
+                // Set en-passant target
+                self.ep_file = Some(mv.to().file());
+            }
+
+            MoveType::EnPassant => {
+                if let Some(ep_pawn_sq) = mv.to().down(self.turn) {
+                    // Capture double-pushed pawn
+                    self.set_piece_at(ep_pawn_sq, BoardPiece::Empty);
+                } else {
+                    unreachable!("Invalid en-passant square");
+                }
+            }
+
+            MoveType::Castle => {
+                // FIXME: Implement castling
+                unimplemented!("Make castle move");
+            }
+
+            MoveType::Promotion(promo) => {
                 // Promote pawn to promoted piece
                 self.set_piece_at(mv.to(), BoardPiece::piece(promo, self.turn));
             }
