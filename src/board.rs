@@ -11,6 +11,7 @@ use crate::{
 const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const INIT_FEN_LEN: usize = 8 * 8 + 7 + 1 + 4 + 2 + 2 + 3 + 5;
 const INIT_MOVE_HIST_LEN: usize = 32;
+const INIT_MOVE_LIST_LEN: usize = 32;
 
 #[derive(Clone)]
 pub struct Board {
@@ -342,6 +343,20 @@ impl Board {
             }
         }
         Some(state)
+    }
+
+    pub fn gen_pseudo_moves(&self) -> Vec<Move> {
+        let mut moves = Vec::with_capacity(INIT_MOVE_LIST_LEN);
+        for sq in Square::iter() {
+            if let BoardPiece::Piece(piece) = self.piece_at(sq) {
+                if piece.color() == self.turn {
+                    match piece.piece_type() {
+                        _ => {}
+                    }
+                }
+            }
+        }
+        moves
     }
 }
 
