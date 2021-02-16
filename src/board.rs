@@ -10,7 +10,6 @@ use crate::{
 
 const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const INIT_FEN_LEN: usize = 8 * 8 + 7 + 1 + 4 + 2 + 2 + 3 + 5;
-const INIT_MOVE_HIST_LEN: usize = 32;
 const INIT_MOVE_LIST_LEN: usize = 32;
 
 #[derive(Clone)]
@@ -21,7 +20,6 @@ pub struct Board {
     pub castle_rights: CastlingRights,
     pub halfmove_clock: u8,
     pub fullmove_count: u16,
-    history: Vec<StateChange>,
 }
 
 impl Board {
@@ -33,7 +31,6 @@ impl Board {
             castle_rights: CastlingRights::none(),
             halfmove_clock: 0,
             fullmove_count: 1,
-            history: Vec::with_capacity(INIT_MOVE_HIST_LEN),
         }
     }
 
@@ -258,7 +255,7 @@ impl Board {
         }
     }
 
-    pub fn make_move(&mut self, mv: Move) {
+    pub fn make_move(&mut self, mv: Move) -> StateChange {
         self.debug_validate_move(mv);
         let from_bpiece = self.piece_at(mv.from());
         let to_bpiece = self.piece_at(mv.to());
@@ -300,16 +297,15 @@ impl Board {
             }
         }
 
-        self.history.push(state);
         // FIXME: Increment halfmove clock
         if self.turn == Color::Black {
             self.fullmove_count += 1;
         }
         self.turn = !self.turn;
+        state
     }
 
-    pub fn undo_move(&mut self) -> Option<StateChange> {
-        let state = self.history.pop()?;
+    pub fn undo_move(&mut self, state: StateChange) {
         let mv = state.last_move;
         self.turn = !self.turn;
         // FIXME: Restore halfmove clock
@@ -342,7 +338,6 @@ impl Board {
                 self.set_piece_at(mv.from(), BoardPiece::piece(PieceType::Pawn, self.turn));
             }
         }
-        Some(state)
     }
 
     pub fn gen_pseudo_moves(&self) -> Vec<Move> {
