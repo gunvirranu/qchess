@@ -22,7 +22,7 @@ impl Game {
     }
 
     pub fn default() -> Self {
-        Self::from_board(Board::empty())
+        Self::from_board(Board::default())
     }
 
     pub fn from_fen(fen: &str) -> Result<Self, FenError> {
