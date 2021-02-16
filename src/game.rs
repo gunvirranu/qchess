@@ -1,10 +1,11 @@
 use crate::moves::StateChange;
 use crate::{Board, FenError, Move};
+use std::fmt;
 
 const INIT_MOVE_HIST_LEN: usize = 32;
 
 pub struct Game {
-    board: Board,
+    pub board: Board,
     history: Vec<StateChange>,
 }
 
@@ -37,5 +38,17 @@ impl Game {
         let state = self.history.pop()?;
         self.board.undo_move(state);
         Some(state)
+    }
+}
+
+impl fmt::Debug for Game {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self.board)
+    }
+}
+
+impl fmt::Display for Game {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.board)
     }
 }

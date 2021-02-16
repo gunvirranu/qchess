@@ -532,7 +532,7 @@ impl fmt::Debug for Board {
             writeln!(f, " |")?;
         }
         writeln!(f, "  +-----------------+")?;
-        writeln!(f, "    a b c d e f g h")
+        write!(f, "    a b c d e f g h")
     }
 }
 
@@ -559,7 +559,7 @@ impl fmt::Display for Board {
             writeln!(f, " ║")?;
         }
         writeln!(f, "   ╚═════════════════╝")?;
-        writeln!(f, "     a b c d e f g h")
+        write!(f, "     a b c d e f g h")
     }
 }
 
