@@ -354,6 +354,7 @@ impl Board {
                         PieceType::Pawn => self.gen_pawn_moves(sq, &mut moves),
                         PieceType::Knight => self.gen_knight_moves(sq, &mut moves),
                         PieceType::King => self.gen_king_moves(sq, &mut moves),
+                        PieceType::Rook => self.gen_rook_moves(sq, &mut moves),
                         _ => {}
                     }
                 }
@@ -455,6 +456,28 @@ impl Board {
             }
         }
         // TODO: Generate castling moves
+    }
+
+    fn gen_rook_moves(&self, sq: Square, moves: &mut Vec<Move>) {
+        for next in [Square::up, Square::down, Square::left, Square::right].iter() {
+            let mut prev = sq;
+            while let Some(to) = next(prev, Color::White) {
+                prev = to;
+                match self.piece_at(to) {
+                    BoardPiece::Piece(piece) => {
+                        if piece.color() != self.turn {
+                            // Capture
+                            moves.push(Move::normal(sq, to));
+                        }
+                        break;
+                    }
+                    BoardPiece::Empty => {
+                        // Move to empty square
+                        moves.push(Move::normal(sq, to));
+                    }
+                }
+            }
+        }
     }
 }
 
