@@ -11,6 +11,7 @@ use crate::{
 const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const INIT_FEN_LEN: usize = 8 * 8 + 7 + 1 + 4 + 2 + 2 + 3 + 5;
 const INIT_MOVE_HIST_LEN: usize = 32;
+const INIT_MOVE_LIST_LEN: usize = 32;
 
 #[derive(Clone)]
 pub struct Board {
@@ -342,6 +343,173 @@ impl Board {
             }
         }
         Some(state)
+    }
+
+    pub fn gen_pseudo_moves(&self) -> Vec<Move> {
+        let mut moves = Vec::with_capacity(INIT_MOVE_LIST_LEN);
+        for sq in Square::iter() {
+            if let BoardPiece::Piece(piece) = self.piece_at(sq) {
+                if piece.color() == self.turn {
+                    match piece.piece_type() {
+                        PieceType::Pawn => self.gen_pawn_moves(sq, &mut moves),
+                        PieceType::Knight => self.gen_knight_moves(sq, &mut moves),
+                        PieceType::King => self.gen_king_moves(sq, &mut moves),
+                        PieceType::Rook => self.gen_rook_moves(sq, &mut moves),
+                        PieceType::Bishop => self.gen_bishop_moves(sq, &mut moves),
+                        PieceType::Queen => self.gen_queen_moves(sq, &mut moves),
+                    }
+                }
+            }
+        }
+        moves
+    }
+
+    fn gen_pawn_moves(&self, sq: Square, moves: &mut Vec<Move>) {
+        fn add_promo_moves(from: Square, to: Square, moves: &mut Vec<Move>) {
+            for &promo in [PieceType::Queen, PieceType::Knight].iter() {
+                moves.push(Move::new(from, to, MoveType::Promotion(promo)));
+            }
+        }
+
+        let up = sq.up(self.turn).expect("Invalid rank for pawn");
+        if self.piece_at(up) == BoardPiece::Empty {
+            if let Some(up_up) = up.up(self.turn) {
+                // Move forward
+                moves.push(Move::normal(sq, up));
+                // Double push
+                if ((self.turn == Color::White && sq.rank() == Rank::R2)
+                    || (self.turn == Color::Black && sq.rank() == Rank::R7))
+                    && self.piece_at(up_up) == BoardPiece::Empty
+                {
+                    moves.push(Move::new(sq, up_up, MoveType::DoublePush));
+                }
+            } else {
+                //  Pawn promotion
+                add_promo_moves(sq, up, moves);
+            }
+        }
+
+        for diag in [up.left(self.turn), up.right(self.turn)]
+            .iter()
+            .filter_map(|&x| x)
+        {
+            if let BoardPiece::Piece(capture) = self.piece_at(diag) {
+                if capture.color() != self.turn {
+                    if up.rank() == Rank::R1 || up.rank() == Rank::R1 {
+                        // Pawn promotion and capture
+                        add_promo_moves(sq, diag, moves);
+                    } else {
+                        // Capture diagonally
+                        moves.push(Move::normal(sq, diag));
+                    }
+                }
+            }
+            // En-passant capture
+            if self.ep_square() == Some(diag) {
+                moves.push(Move::new(sq, diag, MoveType::EnPassant));
+            }
+        }
+    }
+
+    fn gen_knight_moves(&self, sq: Square, moves: &mut Vec<Move>) {
+        for to in [
+            (-2, -1),
+            (-2, 1),
+            (-1, -2),
+            (-1, 2),
+            (1, -2),
+            (1, 2),
+            (2, -1),
+            (2, 1),
+        ]
+        .iter()
+        .map(|(dr, df)| (sq.rank() as i8 + dr, sq.file() as i8 + df))
+        .filter_map(|coords| Square::try_from(coords).ok())
+        {
+            if match self.piece_at(to) {
+                BoardPiece::Empty => true,
+                BoardPiece::Piece(piece) => piece.color() != self.turn,
+            } {
+                moves.push(Move::normal(sq, to));
+            }
+        }
+    }
+
+    fn gen_king_moves(&self, sq: Square, moves: &mut Vec<Move>) {
+        for vert in [sq.up(Color::White), Some(sq), sq.down(Color::White)]
+            .iter()
+            .filter_map(|&x| x)
+        {
+            for to in [
+                vert.left(Color::White),
+                if sq != vert { Some(vert) } else { None },
+                vert.right(Color::White),
+            ]
+            .iter()
+            .filter_map(|&x| x)
+            {
+                if match self.piece_at(to) {
+                    BoardPiece::Empty => true,
+                    BoardPiece::Piece(piece) => piece.color() != self.turn,
+                } {
+                    moves.push(Move::normal(sq, to));
+                }
+            }
+        }
+        // TODO: Generate castling moves
+    }
+
+    fn gen_rook_moves(&self, sq: Square, moves: &mut Vec<Move>) {
+        for next in [Square::up, Square::down, Square::left, Square::right].iter() {
+            let mut prev = sq;
+            while let Some(to) = next(prev, Color::White) {
+                prev = to;
+                match self.piece_at(to) {
+                    BoardPiece::Piece(piece) => {
+                        if piece.color() != self.turn {
+                            // Capture
+                            moves.push(Move::normal(sq, to));
+                        }
+                        break;
+                    }
+                    BoardPiece::Empty => {
+                        // Move to empty square
+                        moves.push(Move::normal(sq, to));
+                    }
+                }
+            }
+        }
+    }
+
+    fn gen_bishop_moves(&self, sq: Square, moves: &mut Vec<Move>) {
+        for horizontal in [Square::left, Square::right].iter() {
+            for vertical in [Square::up, Square::down].iter() {
+                let mut prev = sq;
+                while let Some(to) =
+                    vertical(prev, Color::White).and_then(|x| horizontal(x, Color::White))
+                {
+                    prev = to;
+                    match self.piece_at(to) {
+                        BoardPiece::Piece(piece) => {
+                            if piece.color() != self.turn {
+                                // Capture
+                                moves.push(Move::normal(sq, to));
+                            }
+                            break;
+                        }
+                        BoardPiece::Empty => {
+                            // Move to empty square
+                            moves.push(Move::normal(sq, to));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn gen_queen_moves(&self, sq: Square, moves: &mut Vec<Move>) {
+        self.gen_rook_moves(sq, moves);
+        self.gen_bishop_moves(sq, moves);
     }
 }
 
