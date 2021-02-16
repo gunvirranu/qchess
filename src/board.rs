@@ -351,12 +351,60 @@ impl Board {
             if let BoardPiece::Piece(piece) = self.piece_at(sq) {
                 if piece.color() == self.turn {
                     match piece.piece_type() {
+                        PieceType::Pawn => self.gen_pawn_moves(sq, &mut moves),
                         _ => {}
                     }
                 }
             }
         }
         moves
+    }
+
+    fn gen_pawn_moves(&self, sq: Square, moves: &mut Vec<Move>) {
+        fn add_promo_moves(from: Square, to: Square, moves: &mut Vec<Move>) {
+            for &promo in [PieceType::Queen, PieceType::Knight].iter() {
+                moves.push(Move::new(from, to, MoveType::Promotion(promo)));
+            }
+        }
+
+        let up = sq.up(self.turn).expect("Invalid rank for pawn");
+        if self.piece_at(up) == BoardPiece::Empty {
+            if let Some(up_up) = up.up(self.turn) {
+                // Move forward
+                moves.push(Move::normal(sq, up));
+                // Double push
+                if ((self.turn == Color::White && sq.rank() == Rank::R2)
+                    || (self.turn == Color::Black && sq.rank() == Rank::R7))
+                    && self.piece_at(up_up) == BoardPiece::Empty
+                {
+                    moves.push(Move::new(sq, up_up, MoveType::DoublePush));
+                }
+            } else {
+                //  Pawn promotion
+                add_promo_moves(sq, up, moves);
+            }
+        }
+
+        for diag in [up.left(self.turn), up.right(self.turn)]
+            .iter()
+            .filter_map(|&x| x)
+        {
+            if let BoardPiece::Piece(capture) = self.piece_at(diag) {
+                if capture.color() != self.turn {
+                    if up.rank() == Rank::R1 || up.rank() == Rank::R1 {
+                        // Pawn promotion and capture
+                        add_promo_moves(sq, diag, moves);
+                    } else {
+                        // Capture diagonally
+                        moves.push(Move::normal(sq, diag));
+                    }
+                }
+            }
+            // En-passant capture
+            if self.ep_square() == Some(diag) {
+                moves.push(Move::new(sq, diag, MoveType::EnPassant));
+            }
+        }
     }
 }
 
