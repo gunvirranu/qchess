@@ -306,6 +306,43 @@ impl Board {
         }
         self.turn = !self.turn;
     }
+
+    pub fn undo_move(&mut self) -> Option<StateChange> {
+        let state = self.history.pop()?;
+        let mv = state.last_move;
+        self.turn = !self.turn;
+        // FIXME: Restore halfmove clock
+        if self.turn == Color::Black {
+            self.fullmove_count -= 1;
+        }
+        self.ep_file = state.last_ep_file;
+        self.set_piece_at(mv.from(), self.piece_at(mv.to()));
+        self.set_piece_at(mv.to(), state.captured);
+
+        match mv.move_type() {
+            MoveType::Normal | MoveType::DoublePush => {}
+
+            MoveType::EnPassant => {
+                if let Some(ep_pawn_sq) = mv.to().down(self.turn) {
+                    // Restore captured pawn
+                    self.set_piece_at(ep_pawn_sq, BoardPiece::piece(PieceType::Pawn, !self.turn));
+                } else {
+                    unreachable!("Invalid en-passant square");
+                }
+            }
+
+            MoveType::Castle => {
+                // TODO: Implement undo castling
+                unimplemented!("Undo castle move");
+            }
+
+            MoveType::Promotion(_) => {
+                // Restore pawn
+                self.set_piece_at(mv.from(), BoardPiece::piece(PieceType::Pawn, self.turn));
+            }
+        }
+        Some(state)
+    }
 }
 
 impl fmt::Debug for Board {
