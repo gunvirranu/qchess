@@ -355,6 +355,7 @@ impl Board {
                         PieceType::Knight => self.gen_knight_moves(sq, &mut moves),
                         PieceType::King => self.gen_king_moves(sq, &mut moves),
                         PieceType::Rook => self.gen_rook_moves(sq, &mut moves),
+                        PieceType::Bishop => self.gen_bishop_moves(sq, &mut moves),
                         _ => {}
                     }
                 }
@@ -474,6 +475,32 @@ impl Board {
                     BoardPiece::Empty => {
                         // Move to empty square
                         moves.push(Move::normal(sq, to));
+                    }
+                }
+            }
+        }
+    }
+
+    fn gen_bishop_moves(&self, sq: Square, moves: &mut Vec<Move>) {
+        for horizontal in [Square::left, Square::right].iter() {
+            for vertical in [Square::up, Square::down].iter() {
+                let mut prev = sq;
+                while let Some(to) =
+                    vertical(prev, Color::White).and_then(|x| horizontal(x, Color::White))
+                {
+                    prev = to;
+                    match self.piece_at(to) {
+                        BoardPiece::Piece(piece) => {
+                            if piece.color() != self.turn {
+                                // Capture
+                                moves.push(Move::normal(sq, to));
+                            }
+                            break;
+                        }
+                        BoardPiece::Empty => {
+                            // Move to empty square
+                            moves.push(Move::normal(sq, to));
+                        }
                     }
                 }
             }
