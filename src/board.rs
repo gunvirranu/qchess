@@ -356,7 +356,7 @@ impl Board {
                         PieceType::King => self.gen_king_moves(sq, &mut moves),
                         PieceType::Rook => self.gen_rook_moves(sq, &mut moves),
                         PieceType::Bishop => self.gen_bishop_moves(sq, &mut moves),
-                        _ => {}
+                        PieceType::Queen => self.gen_queen_moves(sq, &mut moves),
                     }
                 }
             }
@@ -505,6 +505,11 @@ impl Board {
                 }
             }
         }
+    }
+
+    fn gen_queen_moves(&self, sq: Square, moves: &mut Vec<Move>) {
+        self.gen_rook_moves(sq, moves);
+        self.gen_bishop_moves(sq, moves);
     }
 }
 
