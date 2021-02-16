@@ -352,6 +352,7 @@ impl Board {
                 if piece.color() == self.turn {
                     match piece.piece_type() {
                         PieceType::Pawn => self.gen_pawn_moves(sq, &mut moves),
+                        PieceType::Knight => self.gen_knight_moves(sq, &mut moves),
                         _ => {}
                     }
                 }
@@ -403,6 +404,30 @@ impl Board {
             // En-passant capture
             if self.ep_square() == Some(diag) {
                 moves.push(Move::new(sq, diag, MoveType::EnPassant));
+            }
+        }
+    }
+
+    fn gen_knight_moves(&self, sq: Square, moves: &mut Vec<Move>) {
+        for to in [
+            (-2, -1),
+            (-2, 1),
+            (-1, -2),
+            (-1, 2),
+            (1, -2),
+            (1, 2),
+            (2, -1),
+            (2, 1),
+        ]
+        .iter()
+        .map(|(dr, df)| (sq.rank() as i8 + dr, sq.file() as i8 + df))
+        .filter_map(|coords| Square::try_from(coords).ok())
+        {
+            if match self.piece_at(to) {
+                BoardPiece::Empty => true,
+                BoardPiece::Piece(piece) => piece.color() != self.turn,
+            } {
+                moves.push(Move::normal(sq, to));
             }
         }
     }
