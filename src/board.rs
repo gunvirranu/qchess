@@ -3,10 +3,14 @@ use std::error::Error;
 use std::fmt;
 use std::str::FromStr;
 
-use crate::{BoardPiece, CastlingRights, Color, File, Rank, SidePiece, Square};
+use crate::moves::StateChange;
+use crate::{
+    BoardPiece, CastlingRights, Color, File, Move, MoveType, PieceType, Rank, SidePiece, Square,
+};
 
 const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const INIT_FEN_LEN: usize = 8 * 8 + 7 + 1 + 4 + 2 + 2 + 3 + 5;
+const INIT_MOVE_HIST_LEN: usize = 32;
 
 #[derive(Clone)]
 pub struct Board {
@@ -16,6 +20,7 @@ pub struct Board {
     pub castle_rights: CastlingRights,
     pub halfmove_clock: u8,
     pub fullmove_count: u16,
+    history: Vec<StateChange>,
 }
 
 impl Board {
@@ -27,6 +32,7 @@ impl Board {
             castle_rights: CastlingRights::none(),
             halfmove_clock: 0,
             fullmove_count: 1,
+            history: Vec::with_capacity(INIT_MOVE_HIST_LEN),
         }
     }
 
@@ -159,6 +165,183 @@ impl Board {
         // 6. Fullmove counter
         fen.push_str(&format!(" {}", self.fullmove_count));
         fen
+    }
+
+    fn debug_validate_move(&self, mv: Move) {
+        // TODO: Change assertions to debug
+        let from_bpiece = self.piece_at(mv.from());
+        let to_bpiece = self.piece_at(mv.to());
+
+        if let BoardPiece::Piece(piece) = from_bpiece {
+            assert_eq!(piece.color(), self.turn, "Cannot move enemy piece");
+        } else {
+            unreachable!("A piece must be moved");
+        }
+        if let BoardPiece::Piece(piece) = to_bpiece {
+            assert_eq!(piece.color(), !self.turn, "Cannot capture own piece");
+        }
+
+        match mv.move_type() {
+            MoveType::Normal => {}
+
+            MoveType::DoublePush => {
+                assert_eq!(
+                    mv.from().file(),
+                    mv.to().file(),
+                    "Double pawn push cannot change file"
+                );
+            }
+
+            MoveType::EnPassant => {
+                assert_eq!(
+                    Some(mv.to().file()),
+                    self.ep_file,
+                    "En-passant file must match board"
+                );
+                assert_eq!(
+                    mv.from().rank(),
+                    match self.turn {
+                        Color::White => Rank::R5,
+                        Color::Black => Rank::R4,
+                    },
+                    "En-passant must be from rank 5 (white) or 4 (black)"
+                );
+                assert_eq!(
+                    mv.to().rank(),
+                    match self.turn {
+                        Color::White => Rank::R6,
+                        Color::Black => Rank::R3,
+                    },
+                    "En-passant must be to rank 6 (white) or 3 (black)"
+                );
+                assert_eq!(
+                    (mv.from().file() as i8 - mv.to().file() as i8).abs(),
+                    1,
+                    "En-passant must be a single diagonal step"
+                );
+                assert_eq!(
+                    to_bpiece,
+                    BoardPiece::Empty,
+                    "En-passant to location must be empty"
+                );
+                if let Some(ep_pawn_sq) = mv.to().down(self.turn) {
+                    assert_eq!(
+                        self.piece_at(ep_pawn_sq),
+                        BoardPiece::piece(PieceType::Pawn, !self.turn),
+                        "Must be an enemy pawn behind en-passant square"
+                    );
+                } else {
+                    unreachable!("Invalid en-passant square");
+                }
+            }
+
+            MoveType::Castle => {}
+
+            MoveType::Promotion(promo) => {
+                assert_eq!(
+                    mv.to().rank(),
+                    match self.turn {
+                        Color::White => Rank::R8,
+                        Color::Black => Rank::R1,
+                    },
+                    "Promotion cannot occur on non-terminal rank"
+                );
+                assert!(
+                    matches!(
+                        promo,
+                        PieceType::Rook | PieceType::Bishop | PieceType::Knight | PieceType::Queen
+                    ),
+                    "Promotion piece must be valid"
+                );
+            }
+        }
+    }
+
+    pub fn make_move(&mut self, mv: Move) {
+        self.debug_validate_move(mv);
+        let from_bpiece = self.piece_at(mv.from());
+        let to_bpiece = self.piece_at(mv.to());
+        let state = StateChange {
+            last_move: mv,
+            captured: to_bpiece,
+            last_ep_file: self.ep_file,
+            last_castle_rights: self.castle_rights,
+        };
+        self.set_piece_at(mv.to(), from_bpiece);
+        self.set_piece_at(mv.from(), BoardPiece::Empty);
+        self.ep_file = None;
+
+        match mv.move_type() {
+            MoveType::Normal => {}
+
+            MoveType::DoublePush => {
+                // Set en-passant target
+                self.ep_file = Some(mv.to().file());
+            }
+
+            MoveType::EnPassant => {
+                if let Some(ep_pawn_sq) = mv.to().down(self.turn) {
+                    // Capture double-pushed pawn
+                    self.set_piece_at(ep_pawn_sq, BoardPiece::Empty);
+                } else {
+                    unreachable!("Invalid en-passant square");
+                }
+            }
+
+            MoveType::Castle => {
+                // FIXME: Implement castling
+                unimplemented!("Make castle move");
+            }
+
+            MoveType::Promotion(promo) => {
+                // Promote pawn to promoted piece
+                self.set_piece_at(mv.to(), BoardPiece::piece(promo, self.turn));
+            }
+        }
+
+        self.history.push(state);
+        // FIXME: Increment halfmove clock
+        if self.turn == Color::Black {
+            self.fullmove_count += 1;
+        }
+        self.turn = !self.turn;
+    }
+
+    pub fn undo_move(&mut self) -> Option<StateChange> {
+        let state = self.history.pop()?;
+        let mv = state.last_move;
+        self.turn = !self.turn;
+        // FIXME: Restore halfmove clock
+        if self.turn == Color::Black {
+            self.fullmove_count -= 1;
+        }
+        self.ep_file = state.last_ep_file;
+        self.set_piece_at(mv.from(), self.piece_at(mv.to()));
+        self.set_piece_at(mv.to(), state.captured);
+
+        match mv.move_type() {
+            MoveType::Normal | MoveType::DoublePush => {}
+
+            MoveType::EnPassant => {
+                if let Some(ep_pawn_sq) = mv.to().down(self.turn) {
+                    // Restore captured pawn
+                    self.set_piece_at(ep_pawn_sq, BoardPiece::piece(PieceType::Pawn, !self.turn));
+                } else {
+                    unreachable!("Invalid en-passant square");
+                }
+            }
+
+            MoveType::Castle => {
+                // TODO: Implement undo castling
+                unimplemented!("Undo castle move");
+            }
+
+            MoveType::Promotion(_) => {
+                // Restore pawn
+                self.set_piece_at(mv.from(), BoardPiece::piece(PieceType::Pawn, self.turn));
+            }
+        }
+        Some(state)
     }
 }
 
