@@ -353,6 +353,7 @@ impl Board {
                     match piece.piece_type() {
                         PieceType::Pawn => self.gen_pawn_moves(sq, &mut moves),
                         PieceType::Knight => self.gen_knight_moves(sq, &mut moves),
+                        PieceType::King => self.gen_king_moves(sq, &mut moves),
                         _ => {}
                     }
                 }
@@ -430,6 +431,30 @@ impl Board {
                 moves.push(Move::normal(sq, to));
             }
         }
+    }
+
+    fn gen_king_moves(&self, sq: Square, moves: &mut Vec<Move>) {
+        for vert in [sq.up(Color::White), Some(sq), sq.down(Color::White)]
+            .iter()
+            .filter_map(|&x| x)
+        {
+            for to in [
+                vert.left(Color::White),
+                if sq != vert { Some(vert) } else { None },
+                vert.right(Color::White),
+            ]
+            .iter()
+            .filter_map(|&x| x)
+            {
+                if match self.piece_at(to) {
+                    BoardPiece::Empty => true,
+                    BoardPiece::Piece(piece) => piece.color() != self.turn,
+                } {
+                    moves.push(Move::normal(sq, to));
+                }
+            }
+        }
+        // TODO: Generate castling moves
     }
 }
 
