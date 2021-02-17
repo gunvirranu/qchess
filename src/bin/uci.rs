@@ -5,6 +5,8 @@ use std::fmt;
 use std::str::FromStr;
 use std::{io, io::Write};
 
+use anyhow::{anyhow, bail};
+
 use qchess::{Game, Move};
 
 #[derive(Clone, Debug)]
@@ -14,7 +16,7 @@ enum UciInput {
     IsReady,
     UciNewGame,
     Position(Game),
-    Go,
+    // Go,
     Stop,
     Quit,
 }
@@ -24,8 +26,8 @@ enum UciOutput {
     Id,
     UciOk,
     ReadyOk,
-    BestMove(Move),
-    Info(String),
+    // BestMove(Move),
+    // Info(String),
 }
 
 fn ui_mainloop() -> anyhow::Result<()> {
@@ -39,6 +41,9 @@ fn ui_mainloop() -> anyhow::Result<()> {
             UciInput::IsReady => reply(UciOutput::ReadyOk)?,
             UciInput::Quit => return Ok(()),
             UciInput::Debug(_) | UciInput::UciNewGame => {}
+            UciInput::Position(game) => {
+                eprintln!("{:?}", game);
+            }
             _ => todo!("Not done yet"),
         }
     }
@@ -49,21 +54,26 @@ impl FromStr for UciInput {
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         let subs: Vec<_> = input.split_ascii_whitespace().collect();
-        let first = *subs.get(0).ok_or(anyhow::anyhow!("No command found"))?;
-        match (subs.len(), first) {
-            (1, "uci") => Ok(UciInput::UciFirst),
-            (1, "isready") => Ok(UciInput::IsReady),
-            (1, "ucinewgame") => Ok(UciInput::UciNewGame),
-            (1, "stop") => Ok(UciInput::Stop),
-            (1, "quit") => Ok(UciInput::Quit),
-            (2, "debug") => match subs[1] {
+        let (&first, args) = subs
+            .split_first()
+            .ok_or_else(|| anyhow!("No command found"))?;
+        match (args.len(), first) {
+            (0, "uci") => Ok(UciInput::UciFirst),
+            (0, "isready") => Ok(UciInput::IsReady),
+            (0, "ucinewgame") => Ok(UciInput::UciNewGame),
+            (0, "stop") => Ok(UciInput::Stop),
+            (0, "quit") => Ok(UciInput::Quit),
+            (1, "debug") => match args[0] {
                 "on" => Ok(UciInput::Debug(true)),
                 "off" => Ok(UciInput::Debug(false)),
-                _ => Err(anyhow::anyhow!("Must be `debug [on|off]`")),
+                _ => Err(anyhow!("Must be `debug [on|off]`")),
             },
-            (_, "position") => unimplemented!("`position` not supported yet"),
+            (n, "position") if n >= 1 => {
+                let game = gen_game_from_uci(input, args)?;
+                Ok(UciInput::Position(game))
+            }
             (_, "go") => unimplemented!("`go` not supported yet"),
-            _ => Err(anyhow::anyhow!("Unknown command: `{}`", first)),
+            _ => Err(anyhow!("Unvalid command: `{}`", input)),
         }
     }
 }
@@ -80,9 +90,37 @@ impl fmt::Display for UciOutput {
             ),
             Self::UciOk => write!(f, "uciok"),
             Self::ReadyOk => write!(f, "readyok"),
-            _ => todo!("Not done yet"),
         }
     }
+}
+
+fn gen_game_from_uci(input: &str, args: &[&str]) -> anyhow::Result<Game> {
+    let (leftover, mut game) = match args[0] {
+        "startpos" => (&args[1..], Game::default()),
+        "fen" if args.len() >= 7 => {
+            let fen = args[1..(1 + 6)].join(" ");
+            (&args[(1 + 6)..], Game::from_fen(&fen)?)
+        }
+        _ => bail!("Invalid position: `{}`", input),
+    };
+    if let Some((&is_moves, moves)) = leftover.split_first() {
+        if is_moves != "moves" {
+            bail!("Invalid option after position: `{}`", input);
+        }
+        for &move_str in moves {
+            let mv = move_str
+                .parse()
+                .and_then(|og_mv| gen_corrected_move(&game, og_mv))
+                .map_err(|_| anyhow!("Invalid move: `{}`", move_str))?;
+            game.make_move(mv);
+        }
+    }
+    Ok(game)
+}
+
+fn gen_corrected_move(_game: &Game, mv: Move) -> Result<Move, ()> {
+    // FIXME: Make this actually convert moves
+    Ok(mv)
 }
 
 fn get_input_command() -> anyhow::Result<UciInput> {
