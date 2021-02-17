@@ -1,8 +1,9 @@
 extern crate anyhow;
 extern crate qchess;
 
-use std::io;
+use std::fmt;
 use std::str::FromStr;
+use std::{io, io::Write};
 
 use qchess::{Game, Move};
 
@@ -18,13 +19,28 @@ enum UciInput {
     Quit,
 }
 
+#[derive(Clone, Debug)]
+enum UciOutput {
+    Id,
+    UciOk,
+    ReadyOk,
+    BestMove(Move),
+    Info(String),
+}
+
 fn ui_mainloop() -> anyhow::Result<()> {
     loop {
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-
-        let command: UciInput = input.trim().parse()?;
-        dbg!(command);
+        let command = get_input_command()?;
+        match command {
+            UciInput::UciFirst => {
+                reply(UciOutput::Id)?;
+                reply(UciOutput::UciOk)?;
+            }
+            UciInput::IsReady => reply(UciOutput::ReadyOk)?,
+            UciInput::Quit => return Ok(()),
+            UciInput::Debug(_) | UciInput::UciNewGame => {}
+            _ => todo!("Not done yet"),
+        }
     }
 }
 
@@ -50,6 +66,33 @@ impl FromStr for UciInput {
             _ => Err(anyhow::anyhow!("Unknown command: `{}`", first)),
         }
     }
+}
+
+impl fmt::Display for UciOutput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Id => write!(
+                f,
+                "id name {} {}\nid author {}",
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION"),
+                env!("CARGO_PKG_AUTHORS"),
+            ),
+            Self::UciOk => write!(f, "uciok"),
+            Self::ReadyOk => write!(f, "readyok"),
+            _ => todo!("Not done yet"),
+        }
+    }
+}
+
+fn get_input_command() -> anyhow::Result<UciInput> {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    input.trim().parse()
+}
+
+fn reply(ret: UciOutput) -> io::Result<()> {
+    writeln!(io::stdout(), "{}", ret)
 }
 
 fn main() -> anyhow::Result<()> {
