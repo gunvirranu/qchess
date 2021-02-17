@@ -4,6 +4,7 @@ use std::fmt;
 
 const INIT_MOVE_HIST_LEN: usize = 32;
 
+#[derive(Clone)]
 pub struct Game {
     pub board: Board,
     history: Vec<StateChange>,
