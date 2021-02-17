@@ -60,9 +60,12 @@ impl Move {
 
 impl fmt::Display for Move {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Chess algebraic notation for moves is annoying.
-        // Also, it requires info not contained in `Move`.
-        write!(f, "{}->{}", self.from(), self.to())
+        // Long algebraic notation for UCI
+        write!(f, "{}{}", self.from(), self.to())?;
+        if let MoveType::Promotion(promo) = self.move_type {
+            write!(f, "{}", promo)?;
+        }
+        Ok(())
     }
 }
 
