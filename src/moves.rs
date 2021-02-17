@@ -1,3 +1,4 @@
+use std::convert::TryFrom;
 use std::fmt;
 use std::str::FromStr;
 
@@ -62,6 +63,30 @@ impl fmt::Display for Move {
         // Chess algebraic notation for moves is annoying.
         // Also, it requires info not contained in `Move`.
         write!(f, "{}->{}", self.from(), self.to())
+    }
+}
+
+impl FromStr for Move {
+    type Err = ();
+
+    // NOTE: Since this doesn't have access to a `Board`, it can only disambiguate
+    // between `Normal` and `Promotion` moves.
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if !matches!(s.len(), 4 | 5) {
+            return Err(());
+        }
+        let from = Square::from_str(&s[..2])?;
+        let to = Square::from_str(&s[2..4])?;
+        let move_type = if let Some(promo) = s.chars().nth(4) {
+            MoveType::Promotion(PieceType::try_from(promo)?)
+        } else {
+            MoveType::Normal
+        };
+        Ok(Move {
+            from,
+            to,
+            move_type,
+        })
     }
 }
 
