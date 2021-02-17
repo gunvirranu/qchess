@@ -51,6 +51,23 @@ impl std::ops::Not for Color {
     }
 }
 
+impl TryFrom<char> for PieceType {
+    type Error = ();
+
+    fn try_from(letter: char) -> Result<Self, Self::Error> {
+        use PieceType::*;
+        match letter {
+            'k' => Ok(King),
+            'q' => Ok(Queen),
+            'r' => Ok(Rook),
+            'b' => Ok(Bishop),
+            'n' => Ok(Knight),
+            'p' => Ok(Pawn),
+            _ => Err(()),
+        }
+    }
+}
+
 impl SidePiece {
     pub fn piece_type(self) -> PieceType {
         use PieceType::*;
