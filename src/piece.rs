@@ -68,6 +68,21 @@ impl TryFrom<char> for PieceType {
     }
 }
 
+impl fmt::Display for PieceType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use PieceType::*;
+        let c = match self {
+            Pawn => 'p',
+            Rook => 'r',
+            Knight => 'n',
+            Bishop => 'b',
+            Queen => 'q',
+            King => 'k',
+        };
+        write!(f, "{}", c)
+    }
+}
+
 impl SidePiece {
     pub fn piece_type(self) -> PieceType {
         use PieceType::*;
