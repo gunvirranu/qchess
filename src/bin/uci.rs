@@ -7,7 +7,7 @@ use std::{io, io::Write};
 
 use anyhow::{anyhow, bail};
 
-use qchess::{Game, Move};
+use qchess::{BoardPiece, Game, Move, MoveType, PieceType};
 
 #[derive(Clone, Debug)]
 enum UciInput {
@@ -110,7 +110,7 @@ fn gen_game_from_uci(input: &str, args: &[&str]) -> anyhow::Result<Game> {
         for &move_str in moves {
             let mv = move_str
                 .parse()
-                .and_then(|og_mv| gen_corrected_move(&game, og_mv))
+                .and_then(|og_mv| fix_move(&game, og_mv))
                 .map_err(|_| anyhow!("Invalid move: `{}`", move_str))?;
             game.make_move(mv);
         }
@@ -118,9 +118,34 @@ fn gen_game_from_uci(input: &str, args: &[&str]) -> anyhow::Result<Game> {
     Ok(game)
 }
 
-fn gen_corrected_move(_game: &Game, mv: Move) -> Result<Move, ()> {
-    // FIXME: Make this actually convert moves
-    Ok(mv)
+fn fix_move(game: &Game, mv: Move) -> Result<Move, ()> {
+    let piece = match game.board.piece_at(mv.from()) {
+        BoardPiece::Piece(p) => p,
+        BoardPiece::Empty => return Err(()),
+    };
+    let to_bpiece = game.board.piece_at(mv.to());
+    // These are _not_ comprehensive checks, just the bare minimum. Assumes valid moves.
+    let mv_type = match piece.piece_type() {
+        PieceType::Pawn => {
+            if (mv.from().rank() as i8 - mv.to().rank() as i8).abs() == 2 {
+                MoveType::DoublePush
+            } else if mv.from().file() != mv.to().file() && to_bpiece == BoardPiece::Empty {
+                MoveType::EnPassant
+            } else {
+                // Promotion has already been handled by `parse()`
+                mv.move_type()
+            }
+        }
+        PieceType::King => {
+            if (mv.from().file() as i8 - mv.to().file() as i8).abs() > 1 {
+                MoveType::Castle
+            } else {
+                mv.move_type()
+            }
+        }
+        _ => mv.move_type(),
+    };
+    Ok(Move::new(mv.from(), mv.to(), mv_type))
 }
 
 fn get_input_command() -> anyhow::Result<UciInput> {
