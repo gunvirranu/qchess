@@ -3,11 +3,13 @@ extern crate qchess;
 
 use std::fmt;
 use std::str::FromStr;
+use std::sync::mpsc;
+use std::thread;
 use std::{io, io::Write};
 
 use anyhow::{anyhow, bail};
 
-use qchess::{BoardPiece, Game, Move, MoveType, PieceType};
+use qchess::{engine_mainloop, BoardPiece, EngineCommand, Game, Move, MoveType, PieceType};
 
 #[derive(Clone, Debug)]
 enum UciInput {
@@ -28,25 +30,6 @@ enum UciOutput {
     ReadyOk,
     // BestMove(Move),
     // Info(String),
-}
-
-fn ui_mainloop() -> anyhow::Result<()> {
-    loop {
-        let command = get_input_command()?;
-        match command {
-            UciInput::UciFirst => {
-                reply(UciOutput::Id)?;
-                reply(UciOutput::UciOk)?;
-            }
-            UciInput::IsReady => reply(UciOutput::ReadyOk)?,
-            UciInput::Quit => return Ok(()),
-            UciInput::Debug(_) | UciInput::UciNewGame => {}
-            UciInput::Position(game) => {
-                eprintln!("{:?}", game);
-            }
-            _ => todo!("Not done yet"),
-        }
-    }
 }
 
 impl FromStr for UciInput {
@@ -90,6 +73,25 @@ impl fmt::Display for UciOutput {
             ),
             Self::UciOk => write!(f, "uciok"),
             Self::ReadyOk => write!(f, "readyok"),
+        }
+    }
+}
+
+fn ui_mainloop(tx: mpsc::Sender<EngineCommand>) -> anyhow::Result<()> {
+    loop {
+        let command = get_input_command()?;
+        match command {
+            UciInput::UciFirst => {
+                reply(UciOutput::Id)?;
+                reply(UciOutput::UciOk)?;
+            }
+            UciInput::IsReady => reply(UciOutput::ReadyOk)?,
+            UciInput::Quit => return Ok(()),
+            UciInput::Debug(_) | UciInput::UciNewGame => {}
+            UciInput::Position(game) => {
+                tx.send(EngineCommand::SetGame(game))?;
+            }
+            _ => todo!("Not done yet"),
         }
     }
 }
@@ -159,5 +161,7 @@ fn reply(ret: UciOutput) -> io::Result<()> {
 }
 
 fn main() -> anyhow::Result<()> {
-    ui_mainloop()
+    let (uci_tx, uci_rx) = mpsc::channel();
+    thread::spawn(move || engine_mainloop(uci_rx));
+    ui_mainloop(uci_tx)
 }

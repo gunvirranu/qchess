@@ -1,6 +1,7 @@
+use std::fmt;
+
 use crate::moves::StateChange;
 use crate::{Board, FenError, Move};
-use std::fmt;
 
 const INIT_MOVE_HIST_LEN: usize = 32;
 
