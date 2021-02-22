@@ -1,7 +1,12 @@
-use std::convert::TryFrom;
 use std::error::Error;
 use std::fmt;
 use std::str::FromStr;
+use std::{
+    convert::TryFrom,
+    ops::{self, Index},
+};
+
+use ops::IndexMut;
 
 use crate::moves::StateChange;
 use crate::{
@@ -48,14 +53,6 @@ impl Board {
         })
     }
 
-    pub fn piece_at(&self, sq: Square) -> BoardPiece {
-        self.array[sq as usize]
-    }
-
-    pub fn set_piece_at(&mut self, sq: Square, piece: BoardPiece) {
-        self.array[sq as usize] = piece;
-    }
-
     // Doesn't completely validate on purpose, just some checks here and there.
     pub fn from_fen(fen: &str) -> Result<Self, FenError> {
         let fen_vec: Vec<&str> = fen.split_ascii_whitespace().collect();
@@ -83,7 +80,7 @@ impl Board {
                     }
                 };
                 let square = Square::try_from(sq).unwrap();
-                board.set_piece_at(square, piece);
+                board[square] = piece;
                 sq += 1;
             }
             if prev_sq + 8 != sq {
@@ -127,7 +124,7 @@ impl Board {
         for r in (0u8..8).rev() {
             for f in 0..8 {
                 let sq = Square::try_from((r, f)).unwrap();
-                match self.piece_at(sq) {
+                match self[sq] {
                     BoardPiece::Empty => empty += 1,
                     BoardPiece::Piece(piece) => {
                         if empty != 0 {
@@ -167,8 +164,8 @@ impl Board {
 
     fn debug_validate_move(&self, mv: Move) {
         // TODO: Change assertions to debug
-        let from_bpiece = self.piece_at(mv.from());
-        let to_bpiece = self.piece_at(mv.to());
+        let from_bpiece = self[mv.from()];
+        let to_bpiece = self[mv.to()];
 
         if let BoardPiece::Piece(piece) = from_bpiece {
             assert_eq!(piece.color(), self.turn, "Cannot move enemy piece");
@@ -224,7 +221,7 @@ impl Board {
                 );
                 if let Some(ep_pawn_sq) = mv.to().down(self.turn) {
                     assert_eq!(
-                        self.piece_at(ep_pawn_sq),
+                        self[ep_pawn_sq],
                         BoardPiece::piece(PieceType::Pawn, !self.turn),
                         "Must be an enemy pawn behind en-passant square"
                     );
@@ -257,16 +254,16 @@ impl Board {
 
     pub fn make_move(&mut self, mv: Move) -> StateChange {
         self.debug_validate_move(mv);
-        let from_bpiece = self.piece_at(mv.from());
-        let to_bpiece = self.piece_at(mv.to());
+        let from_bpiece = self[mv.from()];
+        let to_bpiece = self[mv.to()];
         let state = StateChange {
             last_move: mv,
             captured: to_bpiece,
             last_ep_file: self.ep_file,
             last_castle_rights: self.castle_rights,
         };
-        self.set_piece_at(mv.to(), from_bpiece);
-        self.set_piece_at(mv.from(), BoardPiece::Empty);
+        self[mv.to()] = from_bpiece;
+        self[mv.from()] = BoardPiece::Empty;
         self.ep_file = None;
 
         match mv.move_type() {
@@ -280,7 +277,7 @@ impl Board {
             MoveType::EnPassant => {
                 if let Some(ep_pawn_sq) = mv.to().down(self.turn) {
                     // Capture double-pushed pawn
-                    self.set_piece_at(ep_pawn_sq, BoardPiece::Empty);
+                    self[ep_pawn_sq] = BoardPiece::Empty;
                 } else {
                     unreachable!("Invalid en-passant square");
                 }
@@ -293,7 +290,7 @@ impl Board {
 
             MoveType::Promotion(promo) => {
                 // Promote pawn to promoted piece
-                self.set_piece_at(mv.to(), BoardPiece::piece(promo, self.turn));
+                self[mv.to()] = BoardPiece::piece(promo, self.turn);
             }
         }
 
@@ -313,8 +310,8 @@ impl Board {
             self.fullmove_count -= 1;
         }
         self.ep_file = state.last_ep_file;
-        self.set_piece_at(mv.from(), self.piece_at(mv.to()));
-        self.set_piece_at(mv.to(), state.captured);
+        self[mv.from()] = self[mv.to()];
+        self[mv.to()] = state.captured;
 
         match mv.move_type() {
             MoveType::Normal | MoveType::DoublePush => {}
@@ -322,7 +319,7 @@ impl Board {
             MoveType::EnPassant => {
                 if let Some(ep_pawn_sq) = mv.to().down(self.turn) {
                     // Restore captured pawn
-                    self.set_piece_at(ep_pawn_sq, BoardPiece::piece(PieceType::Pawn, !self.turn));
+                    self[ep_pawn_sq] = BoardPiece::piece(PieceType::Pawn, !self.turn);
                 } else {
                     unreachable!("Invalid en-passant square");
                 }
@@ -335,7 +332,7 @@ impl Board {
 
             MoveType::Promotion(_) => {
                 // Restore pawn
-                self.set_piece_at(mv.from(), BoardPiece::piece(PieceType::Pawn, self.turn));
+                self[mv.from()] = BoardPiece::piece(PieceType::Pawn, self.turn);
             }
         }
     }
@@ -343,7 +340,7 @@ impl Board {
     pub fn gen_pseudo_moves(&self) -> Vec<Move> {
         let mut moves = Vec::with_capacity(INIT_MOVE_LIST_LEN);
         for sq in Square::iter() {
-            if let BoardPiece::Piece(piece) = self.piece_at(sq) {
+            if let BoardPiece::Piece(piece) = self[sq] {
                 if piece.color() == self.turn {
                     match piece.piece_type() {
                         PieceType::Pawn => self.gen_pawn_moves(sq, &mut moves),
@@ -367,14 +364,14 @@ impl Board {
         }
 
         let up = sq.up(self.turn).expect("Invalid rank for pawn");
-        if self.piece_at(up) == BoardPiece::Empty {
+        if self[up] == BoardPiece::Empty {
             if let Some(up_up) = up.up(self.turn) {
                 // Move forward
                 moves.push(Move::normal(sq, up));
                 // Double push
                 if ((self.turn == Color::White && sq.rank() == Rank::R2)
                     || (self.turn == Color::Black && sq.rank() == Rank::R7))
-                    && self.piece_at(up_up) == BoardPiece::Empty
+                    && self[up_up] == BoardPiece::Empty
                 {
                     moves.push(Move::new(sq, up_up, MoveType::DoublePush));
                 }
@@ -388,7 +385,7 @@ impl Board {
             .iter()
             .filter_map(|&x| x)
         {
-            if let BoardPiece::Piece(capture) = self.piece_at(diag) {
+            if let BoardPiece::Piece(capture) = self[diag] {
                 if capture.color() != self.turn {
                     if up.rank() == Rank::R1 || up.rank() == Rank::R1 {
                         // Pawn promotion and capture
@@ -421,7 +418,7 @@ impl Board {
         .map(|(dr, df)| (sq.rank() as i8 + dr, sq.file() as i8 + df))
         .filter_map(|coords| Square::try_from(coords).ok())
         {
-            if match self.piece_at(to) {
+            if match self[to] {
                 BoardPiece::Empty => true,
                 BoardPiece::Piece(piece) => piece.color() != self.turn,
             } {
@@ -443,7 +440,7 @@ impl Board {
             .iter()
             .filter_map(|&x| x)
             {
-                if match self.piece_at(to) {
+                if match self[to] {
                     BoardPiece::Empty => true,
                     BoardPiece::Piece(piece) => piece.color() != self.turn,
                 } {
@@ -459,7 +456,7 @@ impl Board {
             let mut prev = sq;
             while let Some(to) = next(prev, Color::White) {
                 prev = to;
-                match self.piece_at(to) {
+                match self[to] {
                     BoardPiece::Piece(piece) => {
                         if piece.color() != self.turn {
                             // Capture
@@ -484,7 +481,7 @@ impl Board {
                     vertical(prev, Color::White).and_then(|x| horizontal(x, Color::White))
                 {
                     prev = to;
-                    match self.piece_at(to) {
+                    match self[to] {
                         BoardPiece::Piece(piece) => {
                             if piece.color() != self.turn {
                                 // Capture
@@ -520,7 +517,7 @@ impl fmt::Debug for Board {
             write!(f, "{} |", i + 1)?;
             for j in 0..8 {
                 let sq = Square::try_from((i, j)).unwrap();
-                match self.piece_at(sq) {
+                match self[sq] {
                     BoardPiece::Empty => {
                         write!(f, " -")?;
                     }
@@ -543,7 +540,7 @@ impl fmt::Display for Board {
             write!(f, " {} ║", i + 1)?;
             for j in 0..8 {
                 let sq = Square::try_from((i, j)).unwrap();
-                match self.piece_at(sq) {
+                match self[sq] {
                     BoardPiece::Empty => {
                         if i % 2 == j % 2 {
                             write!(f, " ·")?;
@@ -560,6 +557,20 @@ impl fmt::Display for Board {
         }
         writeln!(f, "   ╚═════════════════╝")?;
         write!(f, "     a b c d e f g h")
+    }
+}
+
+impl Index<Square> for Board {
+    type Output = BoardPiece;
+
+    fn index(&self, sq: Square) -> &Self::Output {
+        &self.array[sq as usize]
+    }
+}
+
+impl IndexMut<Square> for Board {
+    fn index_mut(&mut self, sq: Square) -> &mut Self::Output {
+        &mut self.array[sq as usize]
     }
 }
 
