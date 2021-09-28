@@ -9,7 +9,9 @@ use std::{io, io::Write};
 
 use anyhow::{anyhow, bail};
 
-use qchess::{engine_mainloop, BoardPiece, EngineCommand, Game, Move, MoveType, PieceType};
+use qchess::{
+    engine_mainloop, BoardPiece, EngineCommand, Game, GoConfig, Move, MoveType, PieceType,
+};
 
 #[derive(Clone, Debug)]
 enum UciInput {
@@ -18,7 +20,7 @@ enum UciInput {
     IsReady,
     UciNewGame,
     Position(Game),
-    // Go,
+    Go(GoConfig),
     Stop,
     Quit,
 }
@@ -91,7 +93,12 @@ fn ui_mainloop(tx: mpsc::Sender<EngineCommand>) -> anyhow::Result<()> {
             UciInput::Position(game) => {
                 tx.send(EngineCommand::SetGame(game))?;
             }
-            _ => todo!("Not done yet"),
+            UciInput::Go(goconf) => {
+                tx.send(EngineCommand::Go(goconf))?;
+            }
+            UciInput::Stop => {
+                tx.send(EngineCommand::Stop)?;
+            }
         }
     }
 }
